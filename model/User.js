@@ -1,11 +1,15 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema.Types;
 const userSchema = new mongoose.Schema({
-  firstName: {
+  username: {
     type: String,
   },
-  lastName: {
+  canteenName: {
     type: String,
+  },
+  institution: {
+    ref: "institution",
+    type: ObjectId,
   },
   profilePicture: {
     type: String,

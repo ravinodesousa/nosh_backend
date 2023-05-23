@@ -3,12 +3,15 @@ const express = require("express");
 const expressListRoutes = require("express-list-routes");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
 
-// const orderRoute = require("./routes/orders");
+const authRoute = require("./routes/auth");
+const productRoute = require("./routes/items");
 
 const PORT = process.env.PORT || 8000;
 const app = express();
 
+app.use(bodyParser.json());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -18,7 +21,9 @@ app.use(
 );
 
 // routes
-// app.use("/order", orderRoute);
+app.use("/user", authRoute);
+app.use("/product", productRoute);
+
 mongoose
   .connect(process.env.MONGODB_URL)
   .then(() => {
