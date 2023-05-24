@@ -3,6 +3,21 @@ const Institution = require("../model/Institution");
 const Otp = require("../model/Otp");
 const User = require("../model/User");
 
+router.get("/get-institutions", async (req, res) => {
+  try {
+    console.log("api called");
+    let allInstitutions = await Institution.find({
+      is_active: true,
+    });
+
+    return res.status(200).json(allInstitutions);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
 router.post("/login", async (req, res) => {
   try {
     console.log(req.body);
@@ -157,6 +172,7 @@ router.post("/reset-password", async (req, res) => {
 
 router.post("/users", async (req, res) => {
   try {
+    console.log("req123", req.body);
     let query = {
       userType: req.body.userType,
       userStatus: "ACCEPTED",
@@ -167,23 +183,8 @@ router.post("/users", async (req, res) => {
     }
 
     let allUsers = await User.find(query);
-
+    console.log("allUsers", allUsers, query);
     return res.status(200).json(allUsers);
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Auth request failed. Please try again." });
-  }
-});
-
-router.get("/get-institutions", async (req, res) => {
-  try {
-    console.log("api called");
-    let allInstitutions = await Institution.find({
-      is_active: true,
-    });
-
-    return res.status(200).json(allInstitutions);
   } catch (error) {
     return res
       .status(500)

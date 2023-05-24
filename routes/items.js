@@ -23,7 +23,6 @@ router.post("/items", async (req, res) => {
   }
 });
 
-// router.post("/add-item", upload.single("image"), async (req, res) => {
 router.post("/add-item", async (req, res) => {
   try {
     console.log("req123", req);
@@ -42,6 +41,51 @@ router.post("/add-item", async (req, res) => {
     await newProduct.save();
 
     return res.status(200).json(newProduct);
+  } catch (error) {
+    console.log("Error", error);
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
+  }
+});
+
+router.post("/update-item", async (req, res) => {
+  try {
+    console.log("req123", req);
+    // console.log("req.file.path", req.file);
+
+    let product = await Product.findOne({ _id: req.body?.id });
+    console.log("product", product);
+    product.name = req.body?.name;
+    product.image = req.body?.image;
+    product.price = req.body?.price;
+    product.category = req.body?.category;
+    product.type = req.body?.type;
+    // product.description = req.body?.description;
+    product.user = req.body?.userId;
+
+    await product.save();
+
+    return res.status(200).json(product);
+  } catch (error) {
+    console.log("Error", error);
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
+  }
+});
+
+router.post("/update-item-status", async (req, res) => {
+  try {
+    console.log("req123", req.body);
+    // console.log("req.file.path", req.file);
+
+    let product = await Product.findOne({ _id: req.body?.id });
+    product.is_active = req.body?.status;
+
+    await product.save();
+
+    return res.status(200).json(product);
   } catch (error) {
     console.log("Error", error);
     return res
