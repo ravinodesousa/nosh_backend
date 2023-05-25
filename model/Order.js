@@ -8,7 +8,7 @@ const orderSchema = new Schema(
     },
     products: [
       {
-        productDetail: { type: ObjectId, ref: "products" },
+        product: { type: ObjectId, ref: "product" },
         quantity: {
           type: Number,
         },
@@ -25,14 +25,17 @@ const orderSchema = new Schema(
       required: true,
     },
     orderStatus: {
-      // PENDING,ACCEPTED,REJECTED,CANCELED,DELIVERED
+      // PENDING,ACCEPTED,REJECTED,CANCELED,READY,DELIVERED
       type: String,
     },
     rejectReason: {
       type: String,
     },
     paymentMode: {
-      // ONLINE, TOKEN
+      // ONLINE, TOKEN, COD
+      type: String,
+    },
+    timeSlot: {
       type: String,
     },
   },

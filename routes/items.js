@@ -6,12 +6,19 @@ router.post("/items", async (req, res) => {
   try {
     let query = {};
 
+    console.log("query", query);
+
     if (req.body?.userId) {
       query = { ...query, user: req.body?.userId };
     }
     if (req.body?.is_active) {
       query = { ...query, is_active: req.body?.is_active };
     }
+    if (req.body?.category) {
+      query = { ...query, category: req.body?.category };
+    }
+
+    console.log("query", query);
 
     let allItems = await Product.find(query);
 
@@ -88,6 +95,41 @@ router.post("/update-item-status", async (req, res) => {
     return res.status(200).json(product);
   } catch (error) {
     console.log("Error", error);
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
+  }
+});
+
+router.post("/trending-items", async (req, res) => {
+  try {
+    let query = { is_active: true };
+
+    if (req.body?.userId) {
+      query = { ...query, user: req.body?.userId };
+    }
+
+    let fastFoods = await Product.find({
+      ...query,
+      category: "Fast Food",
+    }).limit(5);
+
+    let desserts = await Product.find({
+      ...query,
+      category: "Dessert",
+    }).limit(5);
+
+    let drinks = await Product.find({
+      ...query,
+      category: "Drinks",
+    }).limit(5);
+
+    return res.status(200).json({
+      fastFoods,
+      desserts,
+      drinks,
+    });
+  } catch (error) {
     return res
       .status(500)
       .json({ message: "Request failed. Please try again." });

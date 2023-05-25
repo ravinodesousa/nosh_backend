@@ -7,6 +7,7 @@ const bodyParser = require("body-parser");
 
 const authRoute = require("./routes/auth");
 const productRoute = require("./routes/items");
+const orderRoute = require("./routes/order");
 
 const PORT = process.env.PORT || 8000;
 const app = express();
@@ -23,6 +24,7 @@ app.use(
 // routes
 app.use("/user", authRoute);
 app.use("/product", productRoute);
+app.use("/order", orderRoute);
 
 mongoose
   .connect(process.env.MONGODB_URL)
