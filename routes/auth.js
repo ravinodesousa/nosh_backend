@@ -1,3 +1,4 @@
+const otpGenerator = require("otp-generator");
 const router = require("express").Router();
 const CartItem = require("../model/CartItem");
 const Institution = require("../model/Institution");
@@ -83,13 +84,20 @@ router.post("/send-otp", async (req, res) => {
     console.log(req.body);
 
     const user = await User.findOne({
-      email: req.body.email,
+      mobileNo: req.body.mobileNo,
     });
 
     if (user) {
+      let generatedOTP = otpGenerator.generate(5, {
+        upperCaseAlphabets: false,
+        specialChars: false,
+        lowerCaseAlphabets: false,
+        digits: true,
+      });
+
       const createdOTP = new Otp({
-        otp: req.body.otp,
-        email: req.body.email,
+        token: generatedOTP,
+        mobileNo: req.body?.mobileNo ?? "",
         type: req.body.type,
       });
 
@@ -97,6 +105,7 @@ router.post("/send-otp", async (req, res) => {
 
       if (createdOTP) {
         // todo: send otp to mobileno
+        console.log("generatedOTP", generatedOTP);
 
         return res.status(200).json({
           message: "OTP successfully sent to Mobile number: " + user?.mobileNo,
@@ -108,6 +117,7 @@ router.post("/send-otp", async (req, res) => {
       return res.status(500).json({ message: "User not found" });
     }
   } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -118,29 +128,33 @@ router.post("/verify-otp", async (req, res) => {
   try {
     console.log(req.body);
 
-    const user = await User.findOne({
-      email: req.body.email,
-    });
+    const foundOTP = await Otp.findOne({
+      token: req.body.otp,
+      mobileNo: req.body.mobileNo,
+      type: req.body.type,
+    }).sort({ _id: -1 });
 
-    if (user) {
-      const foundOTP = await Otp.findOne({
-        otp: req.body.otp,
-      }).sort({ _id: -1 });
-
-      if (foundOTP) {
-        // todo: check expiry
-        if (foundOTP?.type == "SIGNUP") {
+    if (foundOTP) {
+      if (foundOTP?.type == "SIGNUP") {
+        const user = await User.findOne({
+          mobileNo: req.body.mobileNo,
+        });
+        if (user) {
           user.userStatus = "ACCEPTED";
           user.isMobileNoConfirmed = true;
           await user.save();
-        }
 
-        return res.status(200).json({ message: "Mobile no verified" });
+          return res.status(200).json({ message: "Mobile no verified" });
+        } else {
+          return res.status(500).json({ message: "User not found" });
+        }
       } else {
-        return res.status(500).json({ message: "OTP not found" });
+        return res.status(200).json({ message: "OTP successfully verified" });
       }
     } else {
-      return res.status(500).json({ message: "User not found" });
+      return res
+        .status(500)
+        .json({ message: "Invalid OTP. Please try again." });
     }
   } catch (error) {
     return res
@@ -154,7 +168,7 @@ router.post("/reset-password", async (req, res) => {
     console.log(req.body);
 
     const user = await User.findOne({
-      email: req.body.email,
+      mobileNo: req.body.mobileNo,
     });
 
     if (user) {
@@ -168,7 +182,7 @@ router.post("/reset-password", async (req, res) => {
   } catch (error) {
     return res
       .status(500)
-      .json({ message: "Auth request failed. Please try again." });
+      .json({ message: "Request failed. Please try again." });
   }
 });
 
