@@ -4,6 +4,8 @@ const CartItem = require("../model/CartItem");
 const Institution = require("../model/Institution");
 const Otp = require("../model/Otp");
 const User = require("../model/User");
+const TokenHistory = require("../model/TokenHistory");
+const PaymentHistory = require("../model/PaymentHistory");
 
 router.get("/get-institutions", async (req, res) => {
   try {
@@ -268,6 +270,74 @@ router.post("/cart-items", async (req, res) => {
     const cartItems = await CartItem.find(query).populate("product");
     console.log("cartItems", cartItems);
     return res.status(200).json(cartItems);
+  } catch (error) {
+    console.log("err", error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/token-history", async (req, res) => {
+  try {
+    console.log("req1234rfs", req.body);
+
+    let user = await User.findOne({
+      _id: req.body?.userId,
+    });
+    if (user) {
+      let token_history = await TokenHistory.find({
+        user: req.body?.userId,
+      })
+        .populate("paymentDetails")
+        .sort({ _id: -1 });
+
+      let data = {
+        balance: user.tokenBalance,
+        token_history,
+      };
+
+      console.log(data);
+
+      return res.status(200).json(data);
+    } else {
+      return res.status(500).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.log("err", error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/add-tokens", async (req, res) => {
+  try {
+    console.log("req123", req.body);
+
+    let user = await User.findOne({
+      _id: req.body?.userId,
+    });
+    if (user) {
+      let payment_history = new PaymentHistory();
+      payment_history.transactionID = req.body?.txnId;
+      payment_history.date = new Date();
+      payment_history.amount = req.body?.amount;
+      await payment_history.save();
+
+      let token_history = new TokenHistory();
+      token_history.user = req.body?.userId;
+      token_history.balance_included = req.body?.amount;
+      token_history.paymentDetails = payment_history?.id;
+      await token_history.save();
+
+      user.tokenBalance = user.tokenBalance + Number(req.body?.amount);
+      await user.save();
+
+      return res.status(200).json(token_history);
+    } else {
+      return res.status(500).json({ message: "User not found" });
+    }
   } catch (error) {
     console.log("err", error);
     return res

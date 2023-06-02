@@ -3,6 +3,7 @@ const { ObjectId } = require("bson");
 
 const PaymentHistorySchema = new Schema({
   transactionID: { type: String },
+  date: { type: String },
   amount: { type: String },
 });
 

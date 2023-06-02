@@ -7,8 +7,8 @@ const TokenHistorySchema = new Schema({
     ref: "users",
     required: true,
   },
-  balance: { type: Number, default: 0 },
-  paymentDetails: { type: ObjectId, ref: "paymentHistorys" },
+  balance_included: { type: Number, default: 0 },
+  paymentDetails: { type: ObjectId, ref: "paymentHistory" },
 });
 
 module.exports = model("tokenHistory", TokenHistorySchema);
