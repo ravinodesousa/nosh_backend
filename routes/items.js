@@ -136,4 +136,35 @@ router.post("/trending-items", async (req, res) => {
   }
 });
 
+router.post("/search", async (req, res) => {
+  try {
+    let query = { is_active: true };
+
+    if (req.body?.canteenId) {
+      query = { ...query, user: req.body?.canteenId };
+    }
+
+    if (req.body?.searchedItem) {
+      query = {
+        ...query,
+        name: { $regex: ".*" + req.body?.searchedItem + ".*", $options: "i" },
+      };
+    }
+
+    console.log("query", query);
+    let matchedItems = await Product.find({
+      ...query,
+    });
+
+    console.log("matchedItems", matchedItems);
+
+    return res.status(200).json(matchedItems);
+  } catch (error) {
+    console.log("err1222", error);
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
+  }
+});
+
 module.exports = router;

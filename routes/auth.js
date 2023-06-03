@@ -210,6 +210,27 @@ router.post("/users", async (req, res) => {
   }
 });
 
+router.post("/user-details", async (req, res) => {
+  try {
+    console.log("req123", req.body);
+    let query = {
+      _id: req.body.userId,
+    };
+
+    let user = await User.findOne(query);
+    console.log("user", user, query);
+    if (user) {
+      return res.status(200).json(user);
+    } else {
+      return res.status(500).json({ message: "User doesn't exist" });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
 router.post("/add-to-cart", async (req, res) => {
   try {
     console.log("req123", req.body);

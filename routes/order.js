@@ -1,4 +1,6 @@
 const Order = require("../model/Order");
+const PaymentHistory = require("../model/PaymentHistory");
+const User = require("../model/User");
 
 const router = require("express").Router();
 
@@ -15,6 +17,7 @@ router.post("/place-order", async (req, res) => {
     order.orderStatus = "PENDING";
     order.paymentMode = req.body.paymentMode;
     order.timeSlot = req.body.timeslot;
+    order.totalAmount = req.body.totalAmount;
 
     req.body.cartItems?.forEach((item) => {
       order.products.push({
@@ -23,10 +26,36 @@ router.post("/place-order", async (req, res) => {
       });
     });
 
+    if (req.body.paymentMode == "ONLINE") {
+      const paymentDetails = new PaymentHistory();
+      paymentDetails.transactionID = req.body?.txnId;
+      paymentDetails.date = new Date();
+      paymentDetails.amount = req.body?.totalAmount;
+      await paymentDetails.save();
+
+      order.paymentDetails = paymentDetails.id;
+    } else if (req.body.paymentMode == "TOKEN") {
+      const user = await User.findOne({ _id: req.body.userId });
+      if (user) {
+        if (user.tokenBalance > Number(req.body?.totalAmount)) {
+          user.tokenBalance = user.tokenBalance - Number(req.body?.totalAmount);
+          await user.save();
+        } else {
+          return res.status(500).json({
+            message:
+              "You don't have enough tokens to place order. Use different mode of payment.",
+          });
+        }
+      } else {
+        return res
+          .status(500)
+          .json({ message: "User not found. Please try again" });
+      }
+    }
+
     await order.save();
 
     // todo: clear cart items
-
     return res.status(200).json({ message: "Order successfully placed" });
     // }
   } catch (error) {

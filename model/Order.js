@@ -38,6 +38,10 @@ const orderSchema = new Schema(
     timeSlot: {
       type: String,
     },
+    totalAmount: {
+      type: String,
+    },
+    paymentDetails: { type: ObjectId, ref: "paymentHistory" },
   },
   { timestamps: true }
 );
