@@ -6,6 +6,7 @@ const Otp = require("../model/Otp");
 const User = require("../model/User");
 const TokenHistory = require("../model/TokenHistory");
 const PaymentHistory = require("../model/PaymentHistory");
+const Order = require("../model/Order");
 
 router.get("/get-institutions", async (req, res) => {
   try {
@@ -29,8 +30,10 @@ router.post("/login", async (req, res) => {
     const user = await User.findOne({
       email: req.body.email,
       password: req.body.password,
-    });
+    }).populate("institution");
     if (user) {
+      user.fcmToken = req.body.fcmToken;
+      await user.save();
       return res.status(200).json(user);
     } else {
       return res.status(500).json({ message: "User not found" });
@@ -193,14 +196,18 @@ router.post("/users", async (req, res) => {
     console.log("req123", req.body);
     let query = {
       userType: req.body.userType,
-      userStatus: "ACCEPTED",
     };
+
+    if (!req.body?.fetchInactiveUsers) {
+      query = { ...query, userStatus: "ACCEPTED" };
+    }
 
     if (req.body?.institution) {
       query = { ...query, institution: req.body?.institution };
     }
 
-    let allUsers = await User.find(query);
+    let allUsers = await User.find(query).populate("institution");
+
     console.log("allUsers", allUsers, query);
     return res.status(200).json(allUsers);
   } catch (error) {
@@ -217,7 +224,7 @@ router.post("/user-details", async (req, res) => {
       _id: req.body.userId,
     };
 
-    let user = await User.findOne(query);
+    let user = await User.findOne(query).populate("institution");
     console.log("user", user, query);
     if (user) {
       return res.status(200).json(user);
@@ -228,6 +235,30 @@ router.post("/user-details", async (req, res) => {
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/update-status", async (req, res) => {
+  try {
+    console.log("req123", req.body);
+    let query = {
+      _id: req.body.id,
+    };
+
+    let user = await User.findOne(query);
+    console.log("user", user, query);
+    if (user) {
+      user.userStatus = req.body.status;
+      await user.save();
+
+      return res.status(200).json(user);
+    } else {
+      return res.status(500).json({ message: "User doesn't exist" });
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
   }
 });
 
@@ -359,6 +390,100 @@ router.post("/add-tokens", async (req, res) => {
     } else {
       return res.status(500).json({ message: "User not found" });
     }
+  } catch (error) {
+    console.log("err", error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/dashboard", async (req, res) => {
+  try {
+    console.log("req1233", req.body);
+
+    // "Total Orders";
+    // "Total Order Amount",
+    // "Total Revenue Earned";
+    // "Total Users",
+    // "Total Canteens",
+
+    let totalOrders = 0;
+    let totalOrderAmount = 0;
+    let totalRevenueEarned = 0;
+    let totalUsers = 0;
+    let totalCanteens = 0;
+
+    if (req.body?.userType == "ADMIN") {
+      let query = {};
+      if (req.body?.startDate && req.body?.endDate) {
+        let startDateArr = String(req.body?.startDate).split(" ");
+        let endDateArr = String(req.body?.endDate).split(" ");
+
+        query = {
+          ...query,
+          createdAt: { $gte: startDateArr[0] },
+          createdAt: { $lte: endDateArr[0] },
+        };
+      }
+
+      let allOrders = await Order.find(query);
+
+      totalOrders = allOrders.length;
+
+      totalOrderAmount = allOrders.reduce((amount, order) => {
+        return Number(order.totalAmount) + amount;
+      }, 0);
+
+      totalRevenueEarned = allOrders.reduce((amount, order) => {
+        return (order.amountEarnedByNosh ?? 0) + amount;
+      }, 0);
+
+      totalUsers = await User.count({ userType: "USER" });
+      totalCanteens = await User.count({ userType: "CANTEEN" });
+    } else if (req.body?.userType == "CANTEEN") {
+      let query = {
+        canteenId: req.body?.userId,
+      };
+
+      if (req.body?.startDate && req.body?.endDate) {
+        let startDateArr = String(req.body?.startDate).split(" ");
+        let endDateArr = String(req.body?.endDate).split(" ");
+
+        query = {
+          ...query,
+          createdAt: { $gte: startDateArr[0] },
+          createdAt: { $lte: endDateArr[0] },
+        };
+      }
+
+      let allOrders = await Order.find(query);
+
+      totalOrders = allOrders.length;
+
+      totalOrderAmount = allOrders.reduce((amount, order) => {
+        return Number(order.totalAmount) + amount;
+      }, 0);
+
+      totalRevenueEarned = allOrders.reduce((amount, order) => {
+        return (order.amountEarnedByCanteen ?? 0) + amount;
+      }, 0);
+    }
+
+    console.log(
+      totalOrders,
+      totalOrderAmount,
+      totalRevenueEarned,
+      totalUsers,
+      totalCanteens
+    );
+    return res.status(200).json({
+      totalOrders,
+      totalOrderAmount,
+      totalRevenueEarned,
+      totalUsers,
+      totalCanteens,
+    });
   } catch (error) {
     console.log("err", error);
     return res

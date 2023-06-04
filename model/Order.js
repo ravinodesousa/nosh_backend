@@ -35,11 +35,25 @@ const orderSchema = new Schema(
       // ONLINE, TOKEN, COD
       type: String,
     },
+    paymentStatus: {
+      // true: paid, false: unpaid
+      type: Boolean,
+      default: false,
+    },
     timeSlot: {
       type: String,
     },
     totalAmount: {
       type: String,
+    },
+    commissionPercentage: {
+      type: Number,
+    },
+    amountEarnedByNosh: {
+      type: Number,
+    },
+    amountEarnedByCanteen: {
+      type: Number,
     },
     paymentDetails: { type: ObjectId, ref: "paymentHistory" },
   },

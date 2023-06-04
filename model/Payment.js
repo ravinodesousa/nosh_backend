@@ -14,8 +14,8 @@ const paymentSchema = new Schema(
       required: true,
     },
     orders: [{ type: ObjectId, ref: "orderSchema" }],
-    userId: {
-      ref: "users",
+    canteenId: {
+      ref: "user",
       type: ObjectId,
     },
     status: {
