@@ -1,3 +1,4 @@
+const { sendNotification } = require("../helper/FcmHelper");
 const Order = require("../model/Order");
 const Payment = require("../model/Payment");
 const PaymentHistory = require("../model/PaymentHistory");
@@ -90,6 +91,16 @@ router.post("/place-order", async (req, res) => {
     }
 
     // todo: clear cart items
+    let canteenUser = await User.findOne({ _id: req.body?.canteenId });
+    console.log("canteenUser", canteenUser);
+    if (canteenUser && canteenUser?.fcmToken) {
+      sendNotification(
+        canteenUser?.fcmToken,
+        "New Order Placed",
+        `A new order: ${order?.orderId} is successfully placed. Please review it.`,
+        { data: JSON.stringify({ id: order?._id }) }
+      );
+    }
     return res.status(200).json({ message: "Order successfully placed" });
     // }
   } catch (error) {
@@ -113,7 +124,8 @@ router.post("/my-orders", async (req, res) => {
     const orders = await Order.find(query)
       .populate("products.product")
       .populate("userId")
-      .populate("canteenId");
+      .populate("canteenId")
+      .sort({ createdAt: -1 });
     console.log("orders", JSON.stringify(orders));
 
     return res.status(200).json(orders);
@@ -135,6 +147,28 @@ router.post("/update-order-status", async (req, res) => {
     order.orderStatus = req.body?.status;
 
     await order.save();
+
+    let user = await User.findOne({ _id: order?.userId });
+    let title = "";
+    let description = "";
+
+    if (req.body?.status == "ACCEPTED") {
+      title = "Order Accepted";
+      description = `Order: ${order?.orderId} is successfully accepted by canteen.`;
+    } else if (req.body?.status == "READY") {
+      title = "Order Ready";
+      description = `Order: ${order?.orderId} is ready. Please collect it from the canteen.`;
+    } else if (req.body?.status == "DELIVERED") {
+      title = "Order Delivered";
+      description = `Order: ${order?.orderId} successfully delivered. Hope you liked our service.`;
+    }
+
+    console.log("user", user);
+    if (user && user?.fcmToken) {
+      sendNotification(user?.fcmToken, title, description, {
+        data: JSON.stringify({ id: order?._id }),
+      });
+    }
 
     return res.status(200).json(order);
   } catch (error) {

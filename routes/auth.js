@@ -312,6 +312,34 @@ router.post("/delete-from-cart", async (req, res) => {
   }
 });
 
+router.post("/change-cart-quantity", async (req, res) => {
+  try {
+    console.log("req123", req.body);
+    let query = {
+      _id: req.body.id,
+    };
+
+    let cartItem = await CartItem.findOne(query);
+    if (cartItem) {
+      if (req.body.action == "INCREMENT" && cartItem.quantity < 20) {
+        cartItem.quantity = cartItem.quantity + 1;
+      } else if (req.body.action == "DECREMENT" && cartItem.quantity > 1) {
+        cartItem.quantity = cartItem.quantity - 1;
+      }
+      await cartItem.save();
+    } else {
+      return res.status(500).json({ message: "Cart item not found" });
+    }
+
+    return res.status(200).json({ message: "Successfully" });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
 router.post("/cart-items", async (req, res) => {
   try {
     console.log("req123", req.body);
