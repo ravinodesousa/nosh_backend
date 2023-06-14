@@ -2,6 +2,11 @@ const { Schema, model } = require("mongoose");
 const { ObjectId } = Schema.Types;
 const paymentSchema = new Schema(
   {
+    type: {
+      type: String,
+      default: "CANTEEN",
+      // CANTEEN (Payment to canteen) or ADMIN (Payment to admin when COD orders are placed)
+    },
     startDate: {
       type: Date,
     },

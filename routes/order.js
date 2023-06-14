@@ -94,12 +94,20 @@ router.post("/place-order", async (req, res) => {
     let canteenUser = await User.findOne({ _id: req.body?.canteenId });
     console.log("canteenUser", canteenUser);
     if (canteenUser && canteenUser?.fcmToken) {
-      sendNotification(
-        canteenUser?.fcmToken,
-        "New Order Placed",
-        `A new order: ${order?.orderId} is successfully placed. Please review it.`,
-        { data: JSON.stringify({ id: order?._id }) }
-      );
+      const title = "New Order Placed";
+      const message = `A new order: ${order?.orderId} is successfully placed. Please review it.`;
+
+      sendNotification(canteenUser?.fcmToken, title, message, {
+        data: JSON.stringify({ id: order?._id }),
+      });
+
+      await Notification.create({
+        date: new Date(),
+        message: message,
+        type: "ORDER-PLACED",
+        title: title,
+        user: canteenUser?._id,
+      });
     }
     return res.status(200).json({ message: "Order successfully placed" });
     // }
@@ -167,6 +175,19 @@ router.post("/update-order-status", async (req, res) => {
     if (user && user?.fcmToken) {
       sendNotification(user?.fcmToken, title, description, {
         data: JSON.stringify({ id: order?._id }),
+      });
+
+      await Notification.create({
+        date: new Date(),
+        message: description,
+        type:
+          req.body?.status == "ACCEPTED"
+            ? "ORDER-ACCEPTED"
+            : req.body?.status == "READY"
+            ? "ORDER-READY"
+            : "ORDER-DELIVERED",
+        title: title,
+        user: canteenUser?._id,
       });
     }
 

@@ -14,6 +14,9 @@ const userSchema = new mongoose.Schema({
   profilePicture: {
     type: String,
   },
+  canteenImage: {
+    type: String,
+  },
   Address: {
     ref: "address",
     type: ObjectId,

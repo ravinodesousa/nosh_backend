@@ -3,7 +3,7 @@ const { ObjectId } = require("bson");
 
 const notificationSchema = new mongoose.Schema({
   type: { type: String },
-  // RATE-ORDER, ORDER-PLACED, ORDER-ACCEPTED, ORDER-READY, ORDER-DELIVERED, MONEY-CREDITED
+  // ORDER-PLACED, ORDER-ACCEPTED, ORDER-READY, ORDER-DELIVERED, MONEY-CREDITED, MONEY-REQUESTED, NEW-CANTEEN-REGISTRATION, RATE-ORDER,
   title: { type: String },
   message: { type: String },
   date: { type: String },

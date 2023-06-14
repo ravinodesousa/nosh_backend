@@ -7,6 +7,11 @@ const User = require("../model/User");
 const TokenHistory = require("../model/TokenHistory");
 const PaymentHistory = require("../model/PaymentHistory");
 const Order = require("../model/Order");
+const Notification = require("../model/Notification");
+const fcmHelper = require("../helper/FcmHelper");
+const bcrypt = require("bcrypt");
+
+const saltRounds = 10;
 
 router.get("/get-institutions", async (req, res) => {
   try {
@@ -29,16 +34,43 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({
       email: req.body.email,
-      password: req.body.password,
     }).populate("institution");
-    if (user) {
-      user.fcmToken = req.body.fcmToken;
-      await user.save();
-      return res.status(200).json(user);
+
+    if (user && bcrypt.compareSync(req.body.password, user.password)) {
+      if (req.body.fcmToken != null) {
+        user.fcmToken = req.body.fcmToken;
+        await user.save();
+      }
+
+      if (!user.isMobileNoConfirmed && user.userStatus == "ACCEPTED") {
+        let generatedOTP = otpGenerator.generate(5, {
+          upperCaseAlphabets: false,
+          specialChars: false,
+          lowerCaseAlphabets: false,
+          digits: true,
+        });
+
+        const createdOTP = new Otp({
+          token: generatedOTP,
+          mobileNo: user.mobileNo,
+          type: "SIGNUP",
+        });
+
+        await createdOTP.save();
+      }
+
+      if (user.userStatus == "ACCEPTED") {
+        return res.status(200).json(user);
+      } else {
+        return res
+          .status(500)
+          .json({ message: "Acces blocked. Please contact Admin." });
+      }
     } else {
       return res.status(500).json({ message: "User not found" });
     }
   } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -62,17 +94,54 @@ router.post("/signup", async (req, res) => {
       }
       return res.status(500).json({ message: errorMsg });
     } else {
+      const hashedPass = bcrypt.hashSync(req.body.password, saltRounds);
+
       const savedUser = new User({
         username: req.body.username,
         email: req.body.email,
-        password: req.body.password,
+        password: hashedPass,
         institution: req.body.institution,
         userType: req.body.userType,
         mobileNo: req.body.mobileNo,
         canteenName: req.body.canteenName,
-        userStatus: "ACCEPTED", //todo: canteen should be set to pending and admin should approve it manually
+        // userStatus: "ACCEPTED", //todo: canteen should be set to pending and admin should approve it manually
       });
+      if (req.body.userType == "CANTEEN") {
+        savedUser.userStatus = "PENDING";
+        const admin = await User.findOne({ userType: "ADMIN" });
+        if (admin && admin?.fcmToken) {
+          const message = `Hi, a new canteen: '${req.body.canteenName}' has registered. Please Approve it.`;
+          const title = "Canteen Registration";
+
+          fcmHelper.sendNotification(admin?.fcmToken, title, message, {});
+
+          await Notification.create({
+            date: new Date(),
+            message: message,
+            type: "NEW-CANTEEN-REGISTRATION",
+            title: title,
+            user: admin?._id,
+          });
+        }
+      } else {
+        savedUser.userStatus = "ACCEPTED";
+      }
       await savedUser.save();
+
+      let generatedOTP = otpGenerator.generate(5, {
+        upperCaseAlphabets: false,
+        specialChars: false,
+        lowerCaseAlphabets: false,
+        digits: true,
+      });
+
+      const createdOTP = new Otp({
+        token: generatedOTP,
+        mobileNo: savedUser.mobileNo,
+        type: "SIGNUP",
+      });
+
+      await createdOTP.save();
 
       return res.status(200).json(savedUser);
     }
@@ -145,7 +214,7 @@ router.post("/verify-otp", async (req, res) => {
           mobileNo: req.body.mobileNo,
         });
         if (user) {
-          user.userStatus = "ACCEPTED";
+          // user.userStatus = "ACCEPTED";
           user.isMobileNoConfirmed = true;
           await user.save();
 
@@ -177,7 +246,9 @@ router.post("/reset-password", async (req, res) => {
     });
 
     if (user) {
-      user.password = req.body.password;
+      const hashedPass = bcrypt.hashSync(req.body.password, saltRounds);
+
+      user.password = hashedPass;
       await user.save();
 
       return res.status(200).json({ message: "Password successfully updated" });
@@ -232,6 +303,68 @@ router.post("/user-details", async (req, res) => {
       return res.status(500).json({ message: "User doesn't exist" });
     }
   } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/update-profile", async (req, res) => {
+  try {
+    console.log(req.body);
+
+    const user = await User.findOne({
+      _id: req.body.userId,
+    });
+
+    if (user) {
+      if (req.body?.profilePic) {
+        user.profilePicture = req.body?.profilePic;
+      }
+
+      if (req.body?.changePassword) {
+        const hashedPass = bcrypt.hashSync(req.body.password, saltRounds);
+
+        user.password = hashedPass;
+      }
+
+      if (req.body?.username) {
+        user.username = req.body.username;
+      }
+
+      if (req.body?.email) {
+        user.email = req.body.email;
+      }
+
+      if (req.body?.mobileNo) {
+        user.mobileNo = req.body.mobileNo;
+        if (user.mobileNo != req.body.mobileNo) {
+          user.isMobileNoConfirmed = false;
+        }
+      }
+
+      if (req.body?.institution) {
+        user.institution = req.body.institution;
+      }
+
+      if (req.body?.canteenName) {
+        user.canteenName = req.body.canteenName;
+      }
+
+      if (req.body?.canteenImage) {
+        user.canteenImage = req.body.canteenImage;
+      }
+
+      await user?.save();
+
+      return res.status(200).json(user);
+    } else {
+      return res
+        .status(500)
+        .json({ message: "User not found. Please try again." });
+    }
+  } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -514,6 +647,23 @@ router.post("/dashboard", async (req, res) => {
     });
   } catch (error) {
     console.log("err", error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.get("/hash", async (req, res) => {
+  try {
+    console.log(req.query);
+    if (req.query?.password) {
+      const hashedPass = bcrypt.hashSync(req.query.password, saltRounds);
+      return res.status(200).json({ hashed: hashedPass });
+    }
+
+    return res.status(200).json(req.query);
+  } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
