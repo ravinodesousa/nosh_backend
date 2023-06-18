@@ -56,6 +56,11 @@ const orderSchema = new Schema(
       type: Number,
     },
     paymentDetails: { type: ObjectId, ref: "paymentHistory" },
+    isRated: {
+      // true: Order rated by user, false
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

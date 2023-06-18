@@ -109,6 +109,12 @@ router.post("/trending-items", async (req, res) => {
       query = { ...query, user: req.body?.userId };
     }
 
+    let trendingFoods = await Product.find({
+      ...query,
+    })
+      .sort({ total_orders: -1 })
+      .limit(5);
+
     let fastFoods = await Product.find({
       ...query,
       category: "Fast Food",
@@ -128,6 +134,7 @@ router.post("/trending-items", async (req, res) => {
       fastFoods,
       desserts,
       drinks,
+      trendingFoods,
     });
   } catch (error) {
     return res

@@ -14,6 +14,22 @@ const productSchema = new mongoose.Schema({
     // 'Veg', 'Non-Veg'
   },
   // description: { type: String },
+  total_orders: {
+    type: Number,
+    default: 0,
+  },
+  rating: {
+    type: Number,
+    default: 0,
+  },
+  total_ratings: {
+    type: Number,
+    default: 0,
+  },
+  total_users_rated: {
+    type: Number,
+    default: 0,
+  },
   user: {
     type: ObjectId,
     ref: "users",

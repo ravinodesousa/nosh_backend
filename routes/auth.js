@@ -15,7 +15,7 @@ const saltRounds = 10;
 
 router.get("/get-institutions", async (req, res) => {
   try {
-    console.log("api called");
+    // console.log("api called");
     let allInstitutions = await Institution.find({
       is_active: true,
     });
@@ -30,7 +30,7 @@ router.get("/get-institutions", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const user = await User.findOne({
       email: req.body.email,
@@ -70,7 +70,7 @@ router.post("/login", async (req, res) => {
       return res.status(500).json({ message: "User not found" });
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -79,7 +79,7 @@ router.post("/login", async (req, res) => {
 
 router.post("/signup", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const user = await User.findOne({
       email: req.body.email,
@@ -113,7 +113,9 @@ router.post("/signup", async (req, res) => {
           const message = `Hi, a new canteen: '${req.body.canteenName}' has registered. Please Approve it.`;
           const title = "Canteen Registration";
 
-          fcmHelper.sendNotification(admin?.fcmToken, title, message, {});
+          fcmHelper.sendNotification(admin?.fcmToken, title, message, {
+            type: "NEW-CANTEEN-REGISTRATION",
+          });
 
           await Notification.create({
             date: new Date(),
@@ -146,7 +148,7 @@ router.post("/signup", async (req, res) => {
       return res.status(200).json(savedUser);
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -155,7 +157,7 @@ router.post("/signup", async (req, res) => {
 
 router.post("/send-otp", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const user = await User.findOne({
       mobileNo: req.body.mobileNo,
@@ -179,7 +181,7 @@ router.post("/send-otp", async (req, res) => {
 
       if (createdOTP) {
         // todo: send otp to mobileno
-        console.log("generatedOTP", generatedOTP);
+        // console.log("generatedOTP", generatedOTP);
 
         return res.status(200).json({
           message: "OTP successfully sent to Mobile number: " + user?.mobileNo,
@@ -191,7 +193,7 @@ router.post("/send-otp", async (req, res) => {
       return res.status(500).json({ message: "User not found" });
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -200,7 +202,7 @@ router.post("/send-otp", async (req, res) => {
 
 router.post("/verify-otp", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const foundOTP = await Otp.findOne({
       token: req.body.otp,
@@ -239,7 +241,7 @@ router.post("/verify-otp", async (req, res) => {
 
 router.post("/reset-password", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const user = await User.findOne({
       mobileNo: req.body.mobileNo,
@@ -264,7 +266,7 @@ router.post("/reset-password", async (req, res) => {
 
 router.post("/users", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       userType: req.body.userType,
     };
@@ -279,7 +281,7 @@ router.post("/users", async (req, res) => {
 
     let allUsers = await User.find(query).populate("institution");
 
-    console.log("allUsers", allUsers, query);
+    // console.log("allUsers", allUsers, query);
     return res.status(200).json(allUsers);
   } catch (error) {
     return res
@@ -290,13 +292,13 @@ router.post("/users", async (req, res) => {
 
 router.post("/user-details", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       _id: req.body.userId,
     };
 
     let user = await User.findOne(query).populate("institution");
-    console.log("user", user, query);
+    // console.log("user", user, query);
     if (user) {
       return res.status(200).json(user);
     } else {
@@ -311,7 +313,7 @@ router.post("/user-details", async (req, res) => {
 
 router.post("/update-profile", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     const user = await User.findOne({
       _id: req.body.userId,
@@ -364,7 +366,7 @@ router.post("/update-profile", async (req, res) => {
         .json({ message: "User not found. Please try again." });
     }
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -373,13 +375,13 @@ router.post("/update-profile", async (req, res) => {
 
 router.post("/update-status", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       _id: req.body.id,
     };
 
     let user = await User.findOne(query);
-    console.log("user", user, query);
+    // console.log("user", user, query);
     if (user) {
       user.userStatus = req.body.status;
       await user.save();
@@ -397,7 +399,7 @@ router.post("/update-status", async (req, res) => {
 
 router.post("/add-to-cart", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       user: req.body.userId,
       product: req.body.id,
@@ -425,7 +427,7 @@ router.post("/add-to-cart", async (req, res) => {
 
 router.post("/delete-from-cart", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       _id: req.body.id,
     };
@@ -447,7 +449,7 @@ router.post("/delete-from-cart", async (req, res) => {
 
 router.post("/change-cart-quantity", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       _id: req.body.id,
     };
@@ -466,7 +468,7 @@ router.post("/change-cart-quantity", async (req, res) => {
 
     return res.status(200).json({ message: "Successfully" });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -475,16 +477,16 @@ router.post("/change-cart-quantity", async (req, res) => {
 
 router.post("/cart-items", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       user: req.body.userId,
     };
 
     const cartItems = await CartItem.find(query).populate("product");
-    console.log("cartItems", cartItems);
+    // console.log("cartItems", cartItems);
     return res.status(200).json(cartItems);
   } catch (error) {
-    console.log("err", error);
+    // console.log("err", error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -493,7 +495,7 @@ router.post("/cart-items", async (req, res) => {
 
 router.post("/token-history", async (req, res) => {
   try {
-    console.log("req1234rfs", req.body);
+    // console.log("req1234rfs", req.body);
 
     let user = await User.findOne({
       _id: req.body?.userId,
@@ -510,14 +512,14 @@ router.post("/token-history", async (req, res) => {
         token_history,
       };
 
-      console.log(data);
+      // console.log(data);
 
       return res.status(200).json(data);
     } else {
       return res.status(500).json({ message: "User not found" });
     }
   } catch (error) {
-    console.log("err", error);
+    // console.log("err", error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -526,7 +528,7 @@ router.post("/token-history", async (req, res) => {
 
 router.post("/add-tokens", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
 
     let user = await User.findOne({
       _id: req.body?.userId,
@@ -552,7 +554,7 @@ router.post("/add-tokens", async (req, res) => {
       return res.status(500).json({ message: "User not found" });
     }
   } catch (error) {
-    console.log("err", error);
+    // console.log("err", error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -561,7 +563,7 @@ router.post("/add-tokens", async (req, res) => {
 
 router.post("/dashboard", async (req, res) => {
   try {
-    console.log("req1233", req.body);
+    // console.log("req1233", req.body);
 
     // "Total Orders";
     // "Total Order Amount",
@@ -631,13 +633,13 @@ router.post("/dashboard", async (req, res) => {
       }, 0);
     }
 
-    console.log(
-      totalOrders,
-      totalOrderAmount,
-      totalRevenueEarned,
-      totalUsers,
-      totalCanteens
-    );
+    // console.log(
+    //   totalOrders,
+    //   totalOrderAmount,
+    //   totalRevenueEarned,
+    //   totalUsers,
+    //   totalCanteens
+    // );
     return res.status(200).json({
       totalOrders,
       totalOrderAmount,
@@ -646,7 +648,7 @@ router.post("/dashboard", async (req, res) => {
       totalCanteens,
     });
   } catch (error) {
-    console.log("err", error);
+    // console.log("err", error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -655,7 +657,7 @@ router.post("/dashboard", async (req, res) => {
 
 router.get("/hash", async (req, res) => {
   try {
-    console.log(req.query);
+    // console.log(req.query);
     if (req.query?.password) {
       const hashedPass = bcrypt.hashSync(req.query.password, saltRounds);
       return res.status(200).json({ hashed: hashedPass });
@@ -663,7 +665,7 @@ router.get("/hash", async (req, res) => {
 
     return res.status(200).json(req.query);
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });

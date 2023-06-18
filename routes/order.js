@@ -1,17 +1,21 @@
 const { sendNotification } = require("../helper/FcmHelper");
+const Notification = require("../model/Notification");
 const Order = require("../model/Order");
 const Payment = require("../model/Payment");
 const PaymentHistory = require("../model/PaymentHistory");
+const Product = require("../model/Product");
 const User = require("../model/User");
+const CartItem = require("../model/CartItem");
 const moment = require("moment");
 
 const router = require("express").Router();
 
 router.post("/place-order", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
 
     let totalOrderCount = await Order.count();
+    const user = await User.findOne({ _id: req.body.userId });
 
     const order = new Order();
     order.orderId = "ORDER-" + (totalOrderCount + 1);
@@ -28,12 +32,20 @@ router.post("/place-order", async (req, res) => {
       Number(req.body?.totalAmount) -
       (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) / 100;
 
-    req.body.cartItems?.forEach((item) => {
+    for (const item of req.body.cartItems) {
       order.products.push({
         product: item?.productId,
         quantity: item?.quantity,
       });
-    });
+
+      let product = await Product.findOne({ _id: item?.productId });
+      console.log("product", product);
+      console.log("item", item);
+      if (product) {
+        product.total_orders = (product.total_orders ?? 0) + item.quantity;
+        await product.save();
+      }
+    }
 
     if (req.body.paymentMode == "ONLINE") {
       const paymentDetails = new PaymentHistory();
@@ -45,7 +57,6 @@ router.post("/place-order", async (req, res) => {
       order.paymentDetails = paymentDetails.id;
       order.paymentStatus = true;
     } else if (req.body.paymentMode == "TOKEN") {
-      const user = await User.findOne({ _id: req.body.userId });
       if (user) {
         if (user.tokenBalance > Number(req.body?.totalAmount)) {
           user.tokenBalance = user.tokenBalance - Number(req.body?.totalAmount);
@@ -66,39 +77,60 @@ router.post("/place-order", async (req, res) => {
 
     await order.save();
 
-    // todo: add record in Payment model
     let paymentRecord = await Payment.findOne({
       canteenId: req.body.canteenId,
       endDate: null,
+      type: req.body.paymentMode == "COD" ? "ADMIN" : "CANTEEN",
     });
 
     if (paymentRecord) {
-      paymentRecord.totalAmount =
-        Number(paymentRecord.totalAmount) +
-        (Number(req.body?.totalAmount) -
-          (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) / 100);
+      if (req.body.paymentMode == "COD") {
+        paymentRecord.totalAmount =
+          Number(paymentRecord.totalAmount) +
+          (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) / 100;
+      } else {
+        paymentRecord.totalAmount =
+          Number(paymentRecord.totalAmount) +
+          (Number(req.body?.totalAmount) -
+            (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) /
+              100);
+      }
+
       paymentRecord.orders?.push(order?.id);
+
       await paymentRecord.save();
     } else {
       let newPaymentRecord = new Payment();
       newPaymentRecord.startDate = new Date();
-      newPaymentRecord.totalAmount =
-        Number(req.body?.totalAmount) -
-        (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) / 100;
       newPaymentRecord.orders?.push(order?.id);
       newPaymentRecord.canteenId = req.body.canteenId;
+      newPaymentRecord.type =
+        req.body.paymentMode == "COD" ? "ADMIN" : "CANTEEN";
+      if (req.body.paymentMode == "COD") {
+        newPaymentRecord.totalAmount =
+          (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) / 100;
+      } else {
+        newPaymentRecord.totalAmount =
+          Number(req.body?.totalAmount) -
+          (Number(req.body?.totalAmount) * process.env.NOSH_COMMISSION) / 100;
+      }
+
       await newPaymentRecord.save();
     }
 
-    // todo: clear cart items
+    // clear cart items
+    for (const item of req.body.cartItems) {
+      await CartItem.deleteOne({ _id: item?.id });
+    }
+
     let canteenUser = await User.findOne({ _id: req.body?.canteenId });
-    console.log("canteenUser", canteenUser);
+    // console.log("canteenUser", canteenUser);
     if (canteenUser && canteenUser?.fcmToken) {
       const title = "New Order Placed";
       const message = `A new order: ${order?.orderId} is successfully placed. Please review it.`;
 
       sendNotification(canteenUser?.fcmToken, title, message, {
-        data: JSON.stringify({ id: order?._id }),
+        data: JSON.stringify({ id: order?._id, type: "ORDER-PLACED" }),
       });
 
       await Notification.create({
@@ -109,7 +141,9 @@ router.post("/place-order", async (req, res) => {
         user: canteenUser?._id,
       });
     }
-    return res.status(200).json({ message: "Order successfully placed" });
+    return res
+      .status(200)
+      .json({ message: "Order successfully placed", id: order?._id });
     // }
   } catch (error) {
     console.log("err", error);
@@ -121,7 +155,7 @@ router.post("/place-order", async (req, res) => {
 
 router.post("/my-orders", async (req, res) => {
   try {
-    console.log(req.body);
+    // console.log(req.body);
     let query = {};
     if (req.body?.userType == "CANTEEN") {
       query = { ...query, canteenId: req.body?.userId };
@@ -129,17 +163,21 @@ router.post("/my-orders", async (req, res) => {
       query = { ...query, userId: req.body?.userId };
     }
 
+    if (req.body?.orderStatus && req.body?.orderStatus != "ALL") {
+      query = { ...query, orderStatus: req.body?.orderStatus };
+    }
+
     const orders = await Order.find(query)
       .populate("products.product")
       .populate("userId")
       .populate("canteenId")
       .sort({ createdAt: -1 });
-    console.log("orders", JSON.stringify(orders));
+    // console.log("orders", JSON.stringify(orders));
 
     return res.status(200).json(orders);
     // }
   } catch (error) {
-    console.log("err", error);
+    // console.log("err", error);
     return res
       .status(500)
       .json({ message: "Request failed. Please try again." });
@@ -148,8 +186,8 @@ router.post("/my-orders", async (req, res) => {
 
 router.post("/update-order-status", async (req, res) => {
   try {
-    console.log("req123", req.body);
-    // console.log("req.file.path", req.file);
+    // console.log("req123", req.body);
+    console.log("req.file.path", req.file);
 
     let order = await Order.findOne({ _id: req.body?.id });
     order.orderStatus = req.body?.status;
@@ -172,11 +210,8 @@ router.post("/update-order-status", async (req, res) => {
     }
 
     console.log("user", user);
+    console.log("user?.fcmToken", user?.fcmToken);
     if (user && user?.fcmToken) {
-      sendNotification(user?.fcmToken, title, description, {
-        data: JSON.stringify({ id: order?._id }),
-      });
-
       await Notification.create({
         date: new Date(),
         message: description,
@@ -187,7 +222,19 @@ router.post("/update-order-status", async (req, res) => {
             ? "ORDER-READY"
             : "ORDER-DELIVERED",
         title: title,
-        user: canteenUser?._id,
+        user: user?._id,
+      });
+
+      sendNotification(user?.fcmToken, title, description, {
+        data: JSON.stringify({
+          id: order?._id,
+          type:
+            req.body?.status == "ACCEPTED"
+              ? "ORDER-ACCEPTED"
+              : req.body?.status == "READY"
+              ? "ORDER-READY"
+              : "ORDER-DELIVERED",
+        }),
       });
     }
 
@@ -200,10 +247,32 @@ router.post("/update-order-status", async (req, res) => {
   }
 });
 
+router.post("/order-details", async (req, res) => {
+  try {
+    // console.log("req123", req.body);
+
+    let order = await Order.findOne({ _id: req.body?.orderId })
+      .populate("products.product")
+      .populate("userId")
+      .populate("canteenId");
+
+    if (order) {
+      return res.status(200).json(order);
+    } else {
+      return res.status(500).json({ message: "Order not found" });
+    }
+  } catch (error) {
+    console.log("Error", error);
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
+  }
+});
+
 router.post("/commission", async (req, res) => {
   try {
-    console.log("req123", req.body);
-    // console.log("req.file.path", req.file);
+    // console.log("req123", req.body);
+    console.log("req.file.path", req.file);
 
     let query = {};
 
@@ -212,8 +281,8 @@ router.post("/commission", async (req, res) => {
       let startofmonth = moment(dateArr[0]).startOf("month").toDate();
       let endtofmonth = moment(dateArr[0]).endOf("month").toDate();
 
-      console.log(startofmonth);
-      console.log(endtofmonth);
+      // console.log(startofmonth);
+      // console.log(endtofmonth);
       query = {
         ...query,
         createdAt: { $gte: startofmonth },
@@ -225,7 +294,7 @@ router.post("/commission", async (req, res) => {
     let data = [];
     let totalCommission = 0;
 
-    console.log(canteens);
+    // console.log(canteens);
 
     for (const canteen of canteens) {
       let temp = {};
@@ -239,15 +308,15 @@ router.post("/commission", async (req, res) => {
 
       totalCommission += temp["totalRevenueEarned"];
 
-      console.log(allOrders);
+      // console.log(allOrders);
       data.push(temp);
     }
 
-    console.log("data", data);
+    // console.log("data", data);
 
     return res.status(200).json({ data, totalCommission });
   } catch (error) {
-    console.log("Error", error);
+    // console.log("Error", error);
     return res
       .status(500)
       .json({ message: "Request failed. Please try again." });
@@ -256,8 +325,8 @@ router.post("/commission", async (req, res) => {
 
 router.post("/payments", async (req, res) => {
   try {
-    console.log("req123", req.body);
-    // console.log("req.file.path", req.file);
+    // console.log("req123", req.body);
+    console.log("req.body", req.body);
 
     let query = {};
 
@@ -266,8 +335,8 @@ router.post("/payments", async (req, res) => {
       let startofmonth = moment(dateArr[0]).startOf("month").toDate();
       let endtofmonth = moment(dateArr[0]).endOf("month").toDate();
 
-      console.log(startofmonth);
-      console.log(endtofmonth);
+      // console.log(startofmonth);
+      // console.log(endtofmonth);
       query = {
         ...query,
         startDate: { $gte: startofmonth },
@@ -275,11 +344,22 @@ router.post("/payments", async (req, res) => {
       };
     }
 
-    let payments = await Payment.find(query).populate("canteenId");
+    if (req.body?.userType && req.body?.userType == "CANTEEN") {
+      query = {
+        ...query,
+        type: "ADMIN",
+      };
+    }
+
+    let admin = await User.findOne({ userType: "ADMIN" });
+
+    let payments = await Payment.find(query)
+      .populate("canteenId")
+      .sort({ status: -1 });
 
     console.log("payments", payments);
 
-    return res.status(200).json(payments);
+    return res.status(200).json({ payments, admin: admin });
   } catch (error) {
     console.log("Error", error);
     return res
@@ -290,13 +370,13 @@ router.post("/payments", async (req, res) => {
 
 router.post("/update-payment-status", async (req, res) => {
   try {
-    console.log("req123", req.body);
+    // console.log("req123", req.body);
     let query = {
       _id: req.body.id,
     };
 
     let paymentRecord = await Payment.findOne(query);
-    console.log("paymentRecord", paymentRecord, query);
+    // console.log("paymentRecord", paymentRecord, query);
     if (paymentRecord) {
       paymentRecord.status = "PAID";
       paymentRecord.endDate = new Date();
@@ -311,6 +391,54 @@ router.post("/update-payment-status", async (req, res) => {
     return res
       .status(500)
       .json({ message: "Request failed. Please try again." });
+  }
+});
+
+router.post("/rate-order", async (req, res) => {
+  try {
+    console.log(req.body);
+
+    let order = await Order.findOne({ _id: req.body?.orderId });
+
+    if (order) {
+      for (const item of req.body?.ratings) {
+        let product = await Product.findOne({
+          _id: item?.id,
+        });
+
+        if (product) {
+          let total_ratings =
+            (product.total_ratings ?? 0) + (item?.rating ?? 0);
+          let total_users_rated = (product.total_users_rated ?? 0) + 1;
+
+          product.total_ratings = total_ratings;
+          product.total_users_rated = total_users_rated;
+
+          // console.log("total_ratings", total_ratings);
+          // console.log("total_users_rated", total_users_rated);
+          // console.log(
+          //   "total_ratings / total_users_rated",
+          //   total_ratings / total_users_rated
+          // );
+          product.rating = (total_ratings / total_users_rated).toFixed(1);
+
+          await product.save();
+        }
+      }
+
+      order.isRated = true;
+      await order.save();
+
+      return res.status(200).json({ message: "successful" });
+    } else {
+    }
+
+    return res.status(500).json({ message: "Order not found" });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
   }
 });
 

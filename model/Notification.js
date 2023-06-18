@@ -3,10 +3,10 @@ const { ObjectId } = require("bson");
 
 const notificationSchema = new mongoose.Schema({
   type: { type: String },
-  // ORDER-PLACED, ORDER-ACCEPTED, ORDER-READY, ORDER-DELIVERED, MONEY-CREDITED, MONEY-REQUESTED, NEW-CANTEEN-REGISTRATION, RATE-ORDER,
+  // ORDER-PLACED, ORDER-ACCEPTED, ORDER-READY, ORDER-DELIVERED, MONEY-CREDITED, MONEY-REQUESTED, NEW-CANTEEN-REGISTRATION,
   title: { type: String },
   message: { type: String },
-  date: { type: String },
+  date: { type: Date },
   user: {
     type: ObjectId,
     ref: "users",

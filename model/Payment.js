@@ -15,7 +15,7 @@ const paymentSchema = new Schema(
       default: null,
     },
     totalAmount: {
-      type: String,
+      type: Number,
       required: true,
     },
     orders: [{ type: ObjectId, ref: "orderSchema" }],

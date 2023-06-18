@@ -7,7 +7,7 @@ router.post("/", async (req, res) => {
     console.log(req.body);
     const notificationList = await Notification.find({
       user: req.body.userId,
-    });
+    }).sort({ _id: -1 });
 
     return res.status(200).json(notificationList);
   } catch (error) {
