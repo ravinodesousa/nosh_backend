@@ -17,10 +17,6 @@ const userSchema = new mongoose.Schema({
   canteenImage: {
     type: String,
   },
-  Address: {
-    ref: "address",
-    type: ObjectId,
-  },
   email: {
     type: String,
   },

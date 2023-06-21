@@ -28,9 +28,6 @@ const orderSchema = new Schema(
       // PENDING,ACCEPTED,REJECTED,CANCELED,READY,DELIVERED
       type: String,
     },
-    rejectReason: {
-      type: String,
-    },
     paymentMode: {
       // ONLINE, TOKEN, COD
       type: String,

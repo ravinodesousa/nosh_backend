@@ -13,7 +13,6 @@ const productSchema = new mongoose.Schema({
     type: String,
     // 'Veg', 'Non-Veg'
   },
-  // description: { type: String },
   total_orders: {
     type: Number,
     default: 0,

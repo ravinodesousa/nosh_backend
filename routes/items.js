@@ -1,5 +1,4 @@
 const router = require("express").Router();
-const upload = require("../helper/UploadHelper");
 const Product = require("../model/Product");
 
 router.post("/items", async (req, res) => {

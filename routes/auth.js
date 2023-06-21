@@ -395,6 +395,62 @@ router.post("/update-profile", async (req, res) => {
   }
 });
 
+router.post("/update-canteen-image", async (req, res) => {
+  try {
+    // console.log(req.body);
+
+    const user = await User.findOne({
+      _id: req.body.userId,
+    });
+
+    if (user) {
+      if (req.body?.canteenImage) {
+        user.canteenImage = req.body?.canteenImage;
+        await user?.save();
+
+        return res.status(200).json(user);
+      } else {
+        return res
+          .status(500)
+          .json({ message: "Canteen Image not provided. Please try again." });
+      }
+    } else {
+      return res
+        .status(500)
+        .json({ message: "User not found. Please try again." });
+    }
+  } catch (error) {
+    // console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/canteen-image", async (req, res) => {
+  try {
+    // console.log(req.body);
+
+    const user = await User.findOne({
+      _id: req.body.userId,
+    });
+
+    if (user) {
+      console.log("user.canteenImage", user.canteenImage);
+      return res.status(200).json({ image: user.canteenImage });
+    } else {
+      return res
+        .status(500)
+        .json({ message: "User not found. Please try again." });
+    }
+  } catch (error) {
+    // console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
 router.post("/update-status", async (req, res) => {
   try {
     // console.log("req123", req.body);
