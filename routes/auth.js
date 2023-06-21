@@ -555,16 +555,32 @@ router.post("/change-cart-quantity", async (req, res) => {
 
 router.post("/cart-items", async (req, res) => {
   try {
-    // console.log("req123", req.body);
+    console.log("req123", req.body);
     let query = {
       user: req.body.userId,
     };
 
-    const cartItems = await CartItem.find(query).populate("product");
-    // console.log("cartItems", cartItems);
+    let populate_query = {
+      path: "product",
+    };
+
+    if (req.body?.canteenId) {
+      populate_query = {
+        path: "product",
+        match: { user: { $eq: req.body?.canteenId } },
+      };
+    }
+
+    console.log("populate_query", populate_query);
+
+    let cartItems = await CartItem.find(query).populate(populate_query);
+
+    cartItems = cartItems.filter((item) => item?.product != null);
+
+    console.log("cartItems", cartItems);
     return res.status(200).json(cartItems);
   } catch (error) {
-    // console.log("err", error);
+    console.log("err", error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
