@@ -10,6 +10,7 @@ const Order = require("../model/Order");
 const Notification = require("../model/Notification");
 const fcmHelper = require("../helper/FcmHelper");
 const bcrypt = require("bcrypt");
+const smsHelper = require("../helper/SMSHelper");
 
 const saltRounds = 10;
 
@@ -49,6 +50,13 @@ router.post("/login", async (req, res) => {
           lowerCaseAlphabets: false,
           digits: true,
         });
+
+        const smsResponse = await smsHelper.sendSMS(
+          user.mobileNo,
+          `Hi, Thank you for using NOSH. Your OTP is ${generatedOTP}`
+        );
+
+        console.log("smsResponse", smsResponse);
 
         const createdOTP = new Otp({
           token: generatedOTP,
@@ -137,6 +145,13 @@ router.post("/signup", async (req, res) => {
         digits: true,
       });
 
+      const smsResponse = await smsHelper.sendSMS(
+        savedUser.mobileNo,
+        `Hi, Thank you for using NOSH. Your OTP is ${generatedOTP}`
+      );
+
+      console.log("smsResponse", smsResponse);
+
       const createdOTP = new Otp({
         token: generatedOTP,
         mobileNo: savedUser.mobileNo,
@@ -171,9 +186,16 @@ router.post("/send-otp", async (req, res) => {
         digits: true,
       });
 
+      const smsResponse = await smsHelper.sendSMS(
+        user.mobileNo,
+        `Hi, Thank you for using NOSH. Your OTP is ${generatedOTP}`
+      );
+
+      console.log("smsResponse", smsResponse);
+
       const createdOTP = new Otp({
         token: generatedOTP,
-        mobileNo: req.body?.mobileNo ?? "",
+        mobileNo: user.mobileNo,
         type: req.body.type,
       });
 
