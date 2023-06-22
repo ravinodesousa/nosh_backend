@@ -35,6 +35,7 @@ const productSchema = new mongoose.Schema({
     required: true,
   },
   is_active: { type: Boolean, default: true },
+  is_special_item: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model("product", productSchema);

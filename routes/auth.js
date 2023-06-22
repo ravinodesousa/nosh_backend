@@ -11,6 +11,7 @@ const Notification = require("../model/Notification");
 const fcmHelper = require("../helper/FcmHelper");
 const bcrypt = require("bcrypt");
 const smsHelper = require("../helper/SMSHelper");
+const Product = require("../model/Product");
 
 const saltRounds = 10;
 
@@ -305,6 +306,35 @@ router.post("/users", async (req, res) => {
 
     // console.log("allUsers", allUsers, query);
     return res.status(200).json(allUsers);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Auth request failed. Please try again." });
+  }
+});
+
+router.post("/canteen-list-with-special-menu", async (req, res) => {
+  try {
+    // console.log("req123", req.body);
+    let query = {
+      userType: "CANTEEN",
+    };
+
+    let data = [];
+
+    let allUsers = await User.find(query).populate("institution");
+
+    for (const user of allUsers) {
+      let allSpecialMenuItems = await Product.find({
+        is_special_item: true,
+        user: user?.id,
+      });
+
+      data.push({ user, special_items: allSpecialMenuItems });
+    }
+
+    console.log("data", data);
+    return res.status(200).json(data);
   } catch (error) {
     return res
       .status(500)

@@ -17,6 +17,14 @@ router.post("/items", async (req, res) => {
       query = { ...query, category: req.body?.category };
     }
 
+    if (req.body?.status == "ACTIVE") {
+      query = { ...query, is_active: true };
+    } else if (req.body?.status == "INACTIVE") {
+      query = { ...query, is_active: false };
+    } else if (req.body?.status == "SPECIAL MENU") {
+      query = { ...query, is_special_item: true };
+    }
+
     console.log("query", query);
 
     let allItems = await Product.find(query);
@@ -88,6 +96,25 @@ router.post("/update-item-status", async (req, res) => {
 
     let product = await Product.findOne({ _id: req.body?.id });
     product.is_active = req.body?.status;
+
+    await product.save();
+
+    return res.status(200).json(product);
+  } catch (error) {
+    console.log("Error", error);
+    return res
+      .status(500)
+      .json({ message: "Request failed. Please try again." });
+  }
+});
+
+router.post("/update-special-menu", async (req, res) => {
+  try {
+    console.log("req123", req.body);
+    // console.log("req.file.path", req.file);
+
+    let product = await Product.findOne({ _id: req.body?.id });
+    product.is_special_item = !product.is_special_item;
 
     await product.save();
 
