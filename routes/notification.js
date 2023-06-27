@@ -2,6 +2,12 @@ const Notification = require("../model/Notification");
 
 const router = require("express").Router();
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/", async (req, res) => {
   try {
     console.log(req.body);

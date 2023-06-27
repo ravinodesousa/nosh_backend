@@ -7,9 +7,19 @@ const Product = require("../model/Product");
 const User = require("../model/User");
 const CartItem = require("../model/CartItem");
 const moment = require("moment");
-
 const router = require("express").Router();
 
+/* 
+  params - 
+    1] userId - user placing order
+    2] canteenId - id of canteen to which items belong to
+    3] paymentMode - COD, TOKEN, ONLINE
+    4] timeslot - selected timeslot 
+    5] totalAmount - total order amount
+    6] cartItems - array of item objects which contains productId and quantity
+
+  result - Returns a success or error message with an orderId if order is placed succssfully
+*/
 router.post("/place-order", async (req, res) => {
   try {
     // console.log(req.body);
@@ -153,6 +163,14 @@ router.post("/place-order", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userType - CANTEEN, USER, ADMIN
+    2] userId
+    3] orderStatus
+
+  result - Returns an array or order objects
+*/
 router.post("/my-orders", async (req, res) => {
   try {
     // console.log(req.body);
@@ -184,10 +202,16 @@ router.post("/my-orders", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] id - orderId
+    2] status - new status of order
+
+  result - Returns an order object if successful or error message if failed
+*/
 router.post("/update-order-status", async (req, res) => {
   try {
     // console.log("req123", req.body);
-    console.log("req.file.path", req.file);
 
     let order = await Order.findOne({ _id: req.body?.id });
     order.orderStatus = req.body?.status;
@@ -247,6 +271,12 @@ router.post("/update-order-status", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] orderId
+
+  result - Returns an order object if successful or error message if not found
+*/
 router.post("/order-details", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -269,6 +299,12 @@ router.post("/order-details", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] date - date range
+
+  result - Returns an object with total commission and commission earned by NOSH w.r.t each canteen
+*/
 router.post("/commission", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -323,6 +359,13 @@ router.post("/commission", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] date - date range
+    2] userType - ADMIN, CANTEEN
+
+  result - Returns an array of payment object and admin details
+*/
 router.post("/payments", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -368,6 +411,12 @@ router.post("/payments", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] id - paymentId
+
+  result - Returns a success or error message
+*/
 router.post("/update-payment-status", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -394,6 +443,13 @@ router.post("/update-payment-status", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] orderId - order id
+    2] ratings - array of objects with rating and productId
+
+  result - Returns a success or error message
+*/
 router.post("/rate-order", async (req, res) => {
   try {
     console.log(req.body);

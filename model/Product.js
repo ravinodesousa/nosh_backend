@@ -6,13 +6,19 @@ const productSchema = new mongoose.Schema({
   image: { type: String },
   price: { type: Number },
   category: {
-    type: String,
+    // type: String,
     // 'Fast Food', 'Dessert', 'Drinks'
+
+    type: ObjectId,
+    ref: "category",
+    required: true,
   },
+
   type: {
     type: String,
     // 'Veg', 'Non-Veg'
   },
+  description: { type: String, default: "" },
   total_orders: {
     type: Number,
     default: 0,

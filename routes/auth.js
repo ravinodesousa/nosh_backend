@@ -15,6 +15,12 @@ const Product = require("../model/Product");
 
 const saltRounds = 10;
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.get("/get-institutions", async (req, res) => {
   try {
     // console.log("api called");
@@ -30,6 +36,12 @@ router.get("/get-institutions", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/login", async (req, res) => {
   try {
     // console.log(req.body);
@@ -86,6 +98,12 @@ router.post("/login", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/signup", async (req, res) => {
   try {
     // console.log(req.body);
@@ -171,6 +189,12 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/send-otp", async (req, res) => {
   try {
     // console.log(req.body);
@@ -223,6 +247,12 @@ router.post("/send-otp", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/verify-otp", async (req, res) => {
   try {
     // console.log(req.body);
@@ -262,6 +292,12 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/reset-password", async (req, res) => {
   try {
     // console.log(req.body);
@@ -287,6 +323,12 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/users", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -313,6 +355,12 @@ router.post("/users", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/canteen-list-with-special-menu", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -328,7 +376,7 @@ router.post("/canteen-list-with-special-menu", async (req, res) => {
       let allSpecialMenuItems = await Product.find({
         is_special_item: true,
         user: user?.id,
-      });
+      }).populate("category");
 
       data.push({ user, special_items: allSpecialMenuItems });
     }
@@ -342,6 +390,12 @@ router.post("/canteen-list-with-special-menu", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/user-details", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -363,6 +417,12 @@ router.post("/user-details", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/update-profile", async (req, res) => {
   try {
     // console.log(req.body);
@@ -425,6 +485,12 @@ router.post("/update-profile", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/update-canteen-image", async (req, res) => {
   try {
     // console.log(req.body);
@@ -457,6 +523,12 @@ router.post("/update-canteen-image", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/canteen-image", async (req, res) => {
   try {
     // console.log(req.body);
@@ -481,6 +553,12 @@ router.post("/canteen-image", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/update-status", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -505,6 +583,12 @@ router.post("/update-status", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/add-to-cart", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -533,6 +617,12 @@ router.post("/add-to-cart", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/delete-from-cart", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -555,6 +645,12 @@ router.post("/delete-from-cart", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/change-cart-quantity", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -583,6 +679,12 @@ router.post("/change-cart-quantity", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/cart-items", async (req, res) => {
   try {
     console.log("req123", req.body);
@@ -617,6 +719,12 @@ router.post("/cart-items", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/token-history", async (req, res) => {
   try {
     // console.log("req1234rfs", req.body);
@@ -650,6 +758,12 @@ router.post("/token-history", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/add-tokens", async (req, res) => {
   try {
     // console.log("req123", req.body);
@@ -685,6 +799,12 @@ router.post("/add-tokens", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.post("/dashboard", async (req, res) => {
   try {
     // console.log("req1233", req.body);
@@ -779,6 +899,12 @@ router.post("/dashboard", async (req, res) => {
   }
 });
 
+/* 
+  params - 
+    1] userId - user id
+    
+  result - Returns array of notification objects
+*/
 router.get("/hash", async (req, res) => {
   try {
     // console.log(req.query);

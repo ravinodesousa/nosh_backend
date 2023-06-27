@@ -4,6 +4,14 @@ var serviceAccount = require("../config/firebase.json");
 const certPath = admin.credential.cert(serviceAccount);
 var FCM = new fcm(certPath);
 
+/* 
+  params - 
+    1] fcm_token - users firebase token
+    2] title - notification title
+    3] body - notification body
+    4] data - object data sent using notification
+    
+*/
 module.exports.sendNotification = (fcm_token, title, body, data) => {
   try {
     let message = {
