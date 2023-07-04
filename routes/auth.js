@@ -44,11 +44,14 @@ router.get("/get-institutions", async (req, res) => {
 */
 router.post("/login", async (req, res) => {
   try {
-    // console.log(req.body);
+    console.log(req.body);
 
     const user = await User.findOne({
       email: req.body.email,
     }).populate("institution");
+
+    console.log(user);
+    console.log(bcrypt.compareSync(req.body.password, user.password));
 
     if (user && bcrypt.compareSync(req.body.password, user.password)) {
       if (req.body.fcmToken != null) {
@@ -141,7 +144,9 @@ router.post("/signup", async (req, res) => {
           const title = "Canteen Registration";
 
           fcmHelper.sendNotification(admin?.fcmToken, title, message, {
-            type: "NEW-CANTEEN-REGISTRATION",
+            data: JSON.stringify({
+              type: "NEW-CANTEEN-REGISTRATION",
+            }),
           });
 
           await Notification.create({

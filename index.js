@@ -4,6 +4,7 @@ const expressListRoutes = require("express-list-routes");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const cron = require("./helper/cronHelper");
 
 const authRoute = require("./routes/auth");
 const productRoute = require("./routes/items");
@@ -42,5 +43,7 @@ mongoose
 app.listen(PORT, () => {
   console.log(`server running on port ${PORT}`);
 });
+
+cron.task.start();
 
 expressListRoutes(app);

@@ -1,5 +1,5 @@
-const { sendNotification } = require("../helper/FcmHelper");
 const Notification = require("../model/Notification");
+const { sendNotification } = require("../helper/FcmHelper");
 const Order = require("../model/Order");
 const Payment = require("../model/Payment");
 const PaymentHistory = require("../model/PaymentHistory");
@@ -8,6 +8,7 @@ const User = require("../model/User");
 const CartItem = require("../model/CartItem");
 const moment = require("moment");
 const router = require("express").Router();
+const fcmHelper = require("../helper/FcmHelper");
 
 /* 
   params - 
@@ -213,55 +214,73 @@ router.post("/update-order-status", async (req, res) => {
   try {
     // console.log("req123", req.body);
 
-    let order = await Order.findOne({ _id: req.body?.id });
-    order.orderStatus = req.body?.status;
+    let order = await Order.findOne({ _id: req.body?.id })
+      .populate("userId")
+      .populate("canteenId");
 
-    await order.save();
+    if (req.body?.status == "CANCELED" || req.body?.status == "REJECTED") {
+      if (order?.orderStatus == "PENDING") {
+        rejectCancelOrderHandler(order, req.body?.status);
+      } else {
+        return res
+          .status(500)
+          .json({ message: "Failed to change order status." });
+      }
+    } else {
+      if (order?.orderStatus != "PENDING" && req.body?.status == "ACCEPTED") {
+        return res
+          .status(500)
+          .json({ message: "Failed to change order status." });
+      }
 
-    let user = await User.findOne({ _id: order?.userId });
-    let title = "";
-    let description = "";
+      order.orderStatus = req.body?.status;
 
-    if (req.body?.status == "ACCEPTED") {
-      title = "Order Accepted";
-      description = `Order: ${order?.orderId} is successfully accepted by canteen.`;
-    } else if (req.body?.status == "READY") {
-      title = "Order Ready";
-      description = `Order: ${order?.orderId} is ready. Please collect it from the canteen.`;
-    } else if (req.body?.status == "DELIVERED") {
-      title = "Order Delivered";
-      description = `Order: ${order?.orderId} successfully delivered. Hope you liked our service.`;
-    }
+      await order.save();
 
-    console.log("user", user);
-    console.log("user?.fcmToken", user?.fcmToken);
-    if (user && user?.fcmToken) {
-      await Notification.create({
-        date: new Date(),
-        message: description,
-        type:
-          req.body?.status == "ACCEPTED"
-            ? "ORDER-ACCEPTED"
-            : req.body?.status == "READY"
-            ? "ORDER-READY"
-            : "ORDER-DELIVERED",
-        title: title,
-        user: user?._id,
-      });
+      let user = await User.findOne({ _id: order?.userId });
+      let title = "";
+      let description = "";
 
-      sendNotification(user?.fcmToken, title, description, {
-        data: JSON.stringify({
-          id: order?._id,
+      if (req.body?.status == "ACCEPTED") {
+        title = "Order Accepted";
+        description = `Order: ${order?.orderId} is successfully accepted by canteen.`;
+      } else if (req.body?.status == "READY") {
+        title = "Order Ready";
+        description = `Order: ${order?.orderId} is ready. Please collect it from the canteen.`;
+      } else if (req.body?.status == "DELIVERED") {
+        title = "Order Delivered";
+        description = `Order: ${order?.orderId} successfully delivered. Hope you liked our service.`;
+      }
+
+      console.log("user", user);
+      console.log("user?.fcmToken", user?.fcmToken);
+      if (user && user?.fcmToken) {
+        await Notification.create({
+          date: new Date(),
+          message: description,
           type:
             req.body?.status == "ACCEPTED"
               ? "ORDER-ACCEPTED"
               : req.body?.status == "READY"
               ? "ORDER-READY"
               : "ORDER-DELIVERED",
-        }),
-      });
-    }
+          title: title,
+          user: user?._id,
+        });
 
+        sendNotification(user?.fcmToken, title, description, {
+          data: JSON.stringify({
+            id: order?._id,
+            type:
+              req.body?.status == "ACCEPTED"
+                ? "ORDER-ACCEPTED"
+                : req.body?.status == "READY"
+                ? "ORDER-READY"
+                : "ORDER-DELIVERED",
+          }),
+        });
+      }
+    }
     return res.status(200).json(order);
   } catch (error) {
     console.log("Error", error);
@@ -498,4 +517,88 @@ router.post("/rate-order", async (req, res) => {
   }
 });
 
+const rejectCancelOrderHandler = async (order, status) => {
+  console.log("rejectCancelOrderHandler called");
+  order.orderStatus = status;
+  await order?.save();
+
+  let paymentRecord = await Payment.findOne({
+    canteenId: order?.canteenId,
+    endDate: null,
+    type: order?.paymentMode == "COD" ? "ADMIN" : "CANTEEN",
+  });
+
+  if (paymentRecord) {
+    if (order?.paymentMode == "COD") {
+      // payment to admin
+      paymentRecord.totalAmount =
+        Number(paymentRecord.totalAmount) - order?.amountEarnedByNosh;
+    } else {
+      paymentRecord.totalAmount =
+        Number(paymentRecord.totalAmount) - order?.amountEarnedByCanteen;
+    }
+
+    paymentRecord.orders = paymentRecord.orders?.filter(
+      (item) => item?.id != order?.id
+    );
+
+    await paymentRecord.save();
+  } else {
+    let newPaymentRecord = new Payment();
+    if (order?.paymentMode == "COD") {
+      // return payment to canteen
+      newPaymentRecord.totalAmount = order?.amountEarnedByCanteen;
+    } else {
+      newPaymentRecord.totalAmount = order?.amountEarnedByNosh;
+    }
+
+    newPaymentRecord.orders?.push(order?.id);
+
+    await newPaymentRecord.save();
+  }
+
+  const user = await User.findOne({ _id: order?.userId });
+  if (user) {
+    user.tokenBalance = Number(user.tokenBalance) + Number(order?.totalAmount);
+    await user.save();
+  }
+
+  let message = null,
+    title = null;
+
+  if (status == "CANCELED") {
+    title = "Order Canceled";
+    message = `Order: ${order?.orderId} is canceled by user`;
+  } else if (status == "REJECTED") {
+    title = "Order Rejected";
+    message = `Order: ${order?.orderId} is rejected by canteen. ${order?.totalAmount} tokens added to your balance.`;
+  }
+
+  if (message != null) {
+    sendNotification(
+      status == "CANCELED"
+        ? order?.canteenId?.fcmToken
+        : order?.userId?.fcmToken,
+      title,
+      message,
+      {
+        data: JSON.stringify({
+          id: order?._id,
+          type: status == "CANCELED" ? "ORDER-CANCELED" : "ORDER-REJECTED",
+        }),
+      }
+    );
+
+    await Notification.create({
+      date: new Date(),
+      message: message,
+      type: status == "CANCELED" ? "ORDER-CANCELED" : "ORDER-REJECTED",
+      title: title,
+      user: status == "CANCELED" ? order?.canteenId?._id : order?.userId?._id,
+    });
+  }
+  return true;
+};
+
 module.exports = router;
+module.exports.rejectCancelOrder = rejectCancelOrderHandler;
