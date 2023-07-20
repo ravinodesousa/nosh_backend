@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  upi: {
+    type: String,
+    default: "",
+  },
   tokenBalance: {
     type: Number,
     default: 0,

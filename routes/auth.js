@@ -112,7 +112,7 @@ router.post("/signup", async (req, res) => {
     // console.log(req.body);
 
     const user = await User.findOne({
-      email: req.body.email,
+      $or: [{ email: req.body?.email }, { mobileNo: req.body?.mobileNo }],
     });
 
     if (user) {
@@ -134,6 +134,7 @@ router.post("/signup", async (req, res) => {
         userType: req.body.userType,
         mobileNo: req.body.mobileNo,
         canteenName: req.body.canteenName,
+        upi: req.body?.upi ?? "",
         // userStatus: "ACCEPTED", //todo: canteen should be set to pending and admin should approve it manually
       });
       if (req.body.userType == "CANTEEN") {
@@ -260,7 +261,7 @@ router.post("/send-otp", async (req, res) => {
 */
 router.post("/verify-otp", async (req, res) => {
   try {
-    // console.log(req.body);
+    console.log(req.body);
 
     const foundOTP = await Otp.findOne({
       token: req.body.otp,
@@ -268,21 +269,26 @@ router.post("/verify-otp", async (req, res) => {
       type: req.body.type,
     }).sort({ _id: -1 });
 
+    console.log("foundOTP", foundOTP);
     if (foundOTP) {
       if (foundOTP?.type == "SIGNUP") {
         const user = await User.findOne({
           mobileNo: req.body.mobileNo,
         });
+        console.log("user", user);
         if (user) {
           // user.userStatus = "ACCEPTED";
           user.isMobileNoConfirmed = true;
           await user.save();
 
+          console.log("mobile no confirmed");
           return res.status(200).json({ message: "Mobile no verified" });
         } else {
+          console.log("user not found");
           return res.status(500).json({ message: "User not found" });
         }
       } else {
+        console.log("OTP verified");
         return res.status(200).json({ message: "OTP successfully verified" });
       }
     } else {
@@ -291,6 +297,7 @@ router.post("/verify-otp", async (req, res) => {
         .json({ message: "Invalid OTP. Please try again." });
     }
   } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ message: "Auth request failed. Please try again." });
@@ -371,6 +378,7 @@ router.post("/canteen-list-with-special-menu", async (req, res) => {
     // console.log("req123", req.body);
     let query = {
       userType: "CANTEEN",
+      userStatus: "ACCEPTED",
     };
 
     let data = [];
@@ -468,6 +476,10 @@ router.post("/update-profile", async (req, res) => {
 
       if (req.body?.canteenName) {
         user.canteenName = req.body.canteenName;
+      }
+
+      if (req.body?.upi) {
+        user.upi = req.body?.upi ?? "";
       }
 
       if (req.body?.canteenImage) {
